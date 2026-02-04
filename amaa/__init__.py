@@ -18,7 +18,7 @@ __version__ = "0.4.0"
 __author__ = "kun-jan22"
 
 # Core exports
-from .core.config import Config, ConfigManager, AMAConfig, load_config
+from .core.config import Config, get_default_config
 from .core.mapmaker import MapMaker
 from .core.perceiver import Perceiver, OllamaClient
 from .core.orchestrator import Orchestrator
@@ -43,9 +43,9 @@ __all__ = [
     "__version__",
     # Core
     "Config",
-    "ConfigManager",
-    "AMAConfig", 
-    "load_config",
+    
+     
+    "get_default_config",
     "MapMaker",
     "Perceiver",
     "OllamaClient",
@@ -62,3 +62,4 @@ __all__ = [
     # Storage
     "Database",
     "FileIndexer",
+]

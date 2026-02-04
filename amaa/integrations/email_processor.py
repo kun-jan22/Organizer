@@ -45,6 +45,80 @@ class EmailSummary:
     needs_action: bool = False
 
 
+
+
+class OllamaClient:
+    """Ollama AI 클라이언트 (로컬 LLM)"""
+    
+    def __init__(self, model: str = "llama3.2"):
+        self.model = model
+        self.base_url = os.getenv('OLLAMA_URL', 'http://localhost:11434')
+        self._available = None
+    
+    def is_available(self) -> bool:
+        """Ollama 서버 가용성 확인"""
+        if self._available is not None:
+            return self._available
+        
+        try:
+            import requests
+            response = requests.get(f"{self.base_url}/api/tags", timeout=2)
+            self._available = response.status_code == 200
+            return self._available
+        except:
+            self._available = False
+            return False
+    
+    def summarize_email(self, subject: str, body: str, sender: str) -> Dict[str, Any]:
+        """Ollama로 이메일 요약"""
+        if not self.is_available():
+            return None
+        
+        import requests
+        
+        prompt = f"""다음 이메일을 분석해주세요.
+
+발신자: {sender}
+제목: {subject}
+
+본문:
+{body[:2000]}
+
+다음 JSON 형식으로만 응답해주세요:
+{{"summary": "이메일 핵심 내용 2-3문장 요약 (한국어)", "tasks": ["해야 할 일"], "requests": ["요청 사항"], "deadlines": ["마감일"], "is_important": true/false, "needs_action": true/false}}
+
+JSON만 응답하세요, 다른 텍스트 없이."""
+
+        try:
+            response = requests.post(
+                f"{self.base_url}/api/generate",
+                json={
+                    "model": self.model,
+                    "prompt": prompt,
+                    "stream": False,
+                    "options": {"temperature": 0.3}
+                },
+                timeout=60
+            )
+            
+            if response.status_code == 200:
+                text = response.json().get('response', '').strip()
+                
+                # JSON 추출
+                if '```json' in text:
+                    text = text.split('```json')[1].split('```')[0]
+                elif '```' in text:
+                    text = text.split('```')[1].split('```')[0]
+                
+                # JSON 파싱 시도
+                import json
+                return json.loads(text)
+        except Exception as e:
+            print(f"⚠️ Ollama 요약 실패: {e}")
+        
+        return None
+
+
 class GeminiClient:
     """Gemini AI 클라이언트"""
     
@@ -59,7 +133,7 @@ class GeminiClient:
         try:
             import google.generativeai as genai
             genai.configure(api_key=self.api_key)
-            self._model = genai.GenerativeModel('gemini-1.5-flash')
+            self._model = genai.GenerativeModel('gemini-2.0-flash')
             return True
         except ImportError:
             print("⚠️ google-generativeai 설치 필요: pip install google-generativeai")
@@ -107,9 +181,24 @@ JSON만 응답하세요."""
             return json.loads(text)
             
         except Exception as e:
-            print(f"⚠️ Gemini 요약 실패, fallback 사용: {e}")
+            print(f"⚠️ Gemini 요약 실패: {e}")
+            # Ollama fallback 시도
+            ollama_result = self._try_ollama(subject, body, sender)
+            if ollama_result:
+                print("  ✓ Ollama fallback 성공")
+                return ollama_result
             return self._fallback_summary(subject, body)
     
+    def _try_ollama(self, subject: str, body: str, sender: str) -> Optional[Dict[str, Any]]:
+        """Ollama로 fallback 시도"""
+        try:
+            ollama = OllamaClient(model="llama3.2")
+            if ollama.is_available():
+                return ollama.summarize_email(subject, body, sender)
+        except:
+            pass
+        return None
+
     def _fallback_summary(self, subject: str, body: str) -> Dict[str, Any]:
         """Gemini 실패 시 기본 추출"""
         # 간단한 키워드 기반 추출
