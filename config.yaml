@@ -1,0 +1,131 @@
+# AMAA v0.4 Configuration
+# 자율형 파일 조직화 시스템 설정
+
+amaa:
+  version: "0.4.0"
+  
+  # ===================
+  # Ollama 설정
+  # ===================
+  ollama:
+    base_url: "http://localhost:11434"
+    model: "llama3.2"           # 텍스트 분석용 모델
+    vision_model: "llava"       # 이미지 분석용 모델
+    timeout: 60                 # 요청 타임아웃 (초)
+    max_retries: 3
+    
+  # ===================
+  # 파일 명명 규칙
+  # ===================
+  naming:
+    date_prefix: true           # ISO 8601 날짜 접두어 강제
+    date_format: "%Y-%m-%d"     # YYYY-MM-DD
+    separator: "_"              # 구분자
+    lowercase: false            # 소문자 강제 여부
+    max_length: 255             # 최대 파일명 길이
+    
+  # ===================
+  # 안전 설정
+  # ===================
+  safety:
+    dry_run_default: true       # 기본적으로 Dry Run 모드
+    confirm_before_execute: true # 실행 전 확인 요청
+    max_files_per_batch: 100    # 배치당 최대 파일 수
+    backup_before_move: true    # 이동 전 백업 여부
+    preserve_timestamps: true   # 타임스탬프 유지
+    
+  # ===================
+  # Undo 시스템
+  # ===================
+  undo:
+    enabled: true
+    max_history: 1000           # 최대 기록 수
+    retention_days: 30          # 기록 보관 기간 (일)
+    
+  # ===================
+  # DLP (Data Loss Prevention)
+  # ===================
+  dlp:
+    enabled: true
+    keywords:
+      - "기밀"
+      - "confidential"
+      - "secret"
+      - "private"
+      - "password"
+      - "비밀번호"
+      - "개인정보"
+      - "주민등록번호"
+    action: "tag"               # tag, quarantine, alert, block
+    quarantine_path: "~/.amaa/quarantine"
+    
+  # ===================
+  # 파일 타입 설정
+  # ===================
+  file_types:
+    documents:
+      extensions: [".pdf", ".docx", ".doc", ".txt", ".md", ".xlsx", ".xls", ".pptx", ".ppt"]
+      analyze_content: true
+    images:
+      extensions: [".jpg", ".jpeg", ".png", ".gif", ".webp", ".heic", ".bmp", ".svg"]
+      use_vision_model: true
+    videos:
+      extensions: [".mp4", ".mov", ".avi", ".mkv", ".webm", ".flv"]
+      extract_thumbnail: true
+    audio:
+      extensions: [".mp3", ".wav", ".flac", ".m4a", ".aac", ".ogg"]
+      extract_metadata: true
+    code:
+      extensions: [".py", ".js", ".ts", ".java", ".cpp", ".c", ".h", ".go", ".rs", ".rb"]
+      analyze_content: true
+    archives:
+      extensions: [".zip", ".tar", ".gz", ".7z", ".rar"]
+      inspect_contents: false
+      
+  # ===================
+  # 제외 패턴
+  # ===================
+  exclude:
+    directories:
+      - ".git"
+      - ".svn"
+      - "node_modules"
+      - "__pycache__"
+      - ".venv"
+      - "venv"
+      - ".idea"
+      - ".vscode"
+    files:
+      - ".DS_Store"
+      - "Thumbs.db"
+      - "*.tmp"
+      - "*.swp"
+      - "~$*"
+    patterns:
+      - ".*"                    # 숨김 파일/폴더
+      
+  # ===================
+  # 성능 설정
+  # ===================
+  performance:
+    parallel_workers: 4         # 병렬 처리 워커 수 (0 = auto)
+    chunk_size: 1000            # 청크 크기
+    cache_enabled: true
+    cache_ttl: 3600             # 캐시 TTL (초)
+    
+  # ===================
+  # 로깅 설정
+  # ===================
+  logging:
+    level: "INFO"               # DEBUG, INFO, WARNING, ERROR
+    file: "~/.amaa/logs/amaa.log"
+    max_size: "10MB"
+    backup_count: 5
+    
+  # ===================
+  # 저장소 설정
+  # ===================
+  storage:
+    database_path: "~/.amaa/amaa.db"
+    index_path: "~/.amaa/index"
+    config_path: "~/.amaa/config"

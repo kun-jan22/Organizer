@@ -1,0 +1,50 @@
+# AMAA v0.4 - Dependencies
+# Python 3.11+ required
+
+# Core
+pathlib2>=2.3.7
+pyyaml>=6.0.1
+python-dotenv>=1.0.1
+
+# Ollama & LLM
+ollama>=0.3.0
+httpx>=0.27.0
+
+# LlamaIndex (RAG)
+llama-index>=0.10.0
+llama-index-embeddings-huggingface>=0.2.0
+llama-index-llms-ollama>=0.1.0
+
+# File Processing
+PyMuPDF>=1.24.0      # PDF extraction
+Pillow>=10.3.0       # Image processing
+python-magic>=0.4.27 # File type detection
+chardet>=5.2.0       # Encoding detection
+
+# Video Processing (optional)
+opencv-python>=4.9.0
+
+# File System Monitoring
+watchdog>=4.0.0
+
+# Database
+sqlalchemy>=2.0.0
+
+# CLI & GUI
+click>=8.1.7
+rich>=13.7.0         # Beautiful CLI output
+tqdm>=4.66.0         # Progress bars
+# tkinter is built-in
+
+# Security
+cryptography>=42.0.0
+
+# Testing
+pytest>=8.0.0
+pytest-asyncio>=0.23.0
+
+# Typing
+typing-extensions>=4.10.0
+
+# Performance
+aiofiles>=23.2.1
