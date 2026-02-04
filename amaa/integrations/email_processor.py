@@ -306,6 +306,7 @@ class GoogleSheetsClient:
             ).execute()
             
             spreadsheet_id = result['spreadsheetId']
+            sheet_id = result['sheets'][0]['properties']['sheetId']
             
             # 헤더 추가
             headers = [
@@ -325,7 +326,7 @@ class GoogleSheetsClient:
             requests = [{
                 'repeatCell': {
                     'range': {
-                        'sheetId': 0,
+                        'sheetId': sheet_id,
                         'startRowIndex': 0,
                         'endRowIndex': 1
                     },

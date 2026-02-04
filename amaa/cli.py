@@ -884,9 +884,13 @@ if CLICK_AVAILABLE:
                 for s in action_needed[:5]:
                     print(f"  • {s.subject[:50]}")
                     if s.deadlines:
-                        print(f"    📅 Deadline: {', '.join(s.deadlines)}")
+                        valid_deadlines = [d for d in s.deadlines if d]
+                        if valid_deadlines:
+                            print(f"    📅 Deadline: {', '.join(valid_deadlines)}")
                     if s.tasks:
-                        print(f"    📋 Tasks: {', '.join(s.tasks[:3])}")
+                        valid_tasks = [t for t in s.tasks[:3] if t]
+                        if valid_tasks:
+                            print(f"    📋 Tasks: {', '.join(valid_tasks)}")
                 
         except ImportError as e:
             print_error(f"모듈 로드 실패: {e}")
