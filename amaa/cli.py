@@ -547,6 +547,261 @@ if CLICK_AVAILABLE:
             print_error(f"모듈 로드 실패: {e}")
         except Exception as e:
             print_error(str(e))
+    
+    
+    # ======================== 새 명령어: 바탕화면 자동 정리 ========================
+    
+    @cli.command()
+    @click.option('--watch', '-w', is_flag=True, help='실시간 모니터링 모드')
+    @click.option('--execute', '-e', is_flag=True, help='현재 파일 정리 실행')
+    @click.option('--output', '-o', default='~/Documents/Organized', help='정리된 파일 저장 위치')
+    def desktop(watch: bool, execute: bool, output: str):
+        """🖥️ 바탕화면 자동 정리"""
+        print_banner()
+        
+        try:
+            from amaa.agents.desktop_organizer import DesktopOrganizer
+            from amaa.core.history import get_tracker
+            
+            tracker = get_tracker()
+            organizer = DesktopOrganizer(
+                output_base=output,
+                history_tracker=tracker
+            )
+            
+            print_info(f"바탕화면: {organizer.desktop_path}")
+            print_info(f"저장 위치: {organizer.output_base}")
+            
+            if watch:
+                print_info("실시간 모니터링 모드")
+                organizer.start()
+            elif execute:
+                results = organizer.organize_all()
+                success = sum(1 for r in results if r.success)
+                print_success(f"정리 완료: {success}/{len(results)} 파일")
+            else:
+                # 미리보기
+                files = list(organizer.desktop_path.iterdir())
+                files = [f for f in files if f.is_file() and not organizer.should_skip(f)]
+                
+                if RICH_AVAILABLE:
+                    table = Table(title="🖥️ 바탕화면 파일 미리보기")
+                    table.add_column("파일명", style="cyan")
+                    table.add_column("→")
+                    table.add_column("카테고리", style="green")
+                    
+                    for f in files[:20]:
+                        cat = organizer.get_category(f)
+                        table.add_row(f.name[:40], "→", cat.value)
+                    
+                    console.print(table)
+                else:
+                    for f in files[:20]:
+                        cat = organizer.get_category(f)
+                        print(f"  {f.name} → {cat.value}/")
+                
+                print_info(f"총 {len(files)}개 파일")
+                print_info("실행하려면: amaa desktop --execute")
+                print_info("모니터링: amaa desktop --watch")
+                
+        except ImportError as e:
+            print_error(f"모듈 로드 실패: {e}")
+        except Exception as e:
+            print_error(str(e))
+    
+    
+    # ======================== 새 명령어: Gmail 첨부파일 ========================
+    
+    @cli.command()
+    @click.option('--start', '-s', is_flag=True, help='Gmail 모니터링 시작')
+    @click.option('--check', '-c', is_flag=True, help='한 번만 확인')
+    @click.option('--output', '-o', default='~/Downloads/EmailAttachments', help='저장 경로')
+    def gmail(start: bool, check: bool, output: str):
+        """📧 Gmail 첨부파일 자동 저장"""
+        print_banner()
+        
+        try:
+            from amaa.integrations.gmail import GmailWatcher
+            from amaa.integrations.gdrive import GoogleDriveSync
+            from amaa.core.history import get_tracker
+            
+            tracker = get_tracker()
+            
+            def history_callback(data):
+                tracker.record_email_attachment(
+                    sender=data.get('metadata', {}).get('sender', 'unknown'),
+                    subject=data.get('metadata', {}).get('subject', ''),
+                    original_filename=data.get('original_name', ''),
+                    saved_path=data.get('destination', ''),
+                    gdrive_id=data.get('gdrive_id')
+                )
+            
+            watcher = GmailWatcher(
+                local_save_path=output,
+                history_callback=history_callback
+            )
+            
+            if start:
+                print_info("Gmail 모니터링 시작...")
+                print_info("credentials.json 파일이 필요합니다")
+                watcher.start()
+            elif check:
+                if watcher.authenticate():
+                    print_info("새 첨부파일 확인 중...")
+                    attachments = watcher.check_and_process()
+                    print_success(f"{len(attachments)}개 첨부파일 처리됨")
+            else:
+                print_info("사용법:")
+                print("  amaa gmail --check    한 번 확인")
+                print("  amaa gmail --start    실시간 모니터링")
+                print()
+                print("⚠️ 필요한 설정:")
+                print("  1. Google Cloud Console에서 OAuth 자격 증명 생성")
+                print("  2. credentials.json 다운로드")
+                print("  3. Gmail API 활성화")
+                
+        except ImportError as e:
+            print_error(f"모듈 로드 실패: {e}")
+            print_info("pip install google-api-python-client google-auth-oauthlib")
+        except Exception as e:
+            print_error(str(e))
+    
+    
+    # ======================== 새 명령어: 히스토리 ========================
+    
+    @cli.command()
+    @click.option('--days', '-d', default=7, help='조회 기간 (일)')
+    @click.option('--search', '-s', default=None, help='파일명 검색')
+    @click.option('--export', '-e', default=None, help='내보내기 경로')
+    @click.option('--format', '-f', default='json', type=click.Choice(['json', 'csv', 'md']), help='내보내기 형식')
+    def history(days: int, search: str, export: str, format: str):
+        """📜 파일 이동/변경 히스토리"""
+        print_banner()
+        
+        try:
+            from amaa.core.history import HistoryTracker
+            
+            tracker = HistoryTracker()
+            
+            if export:
+                output_path = tracker.export_report(export, days=days, format=format)
+                print_success(f"히스토리 내보내기 완료: {output_path}")
+                return
+            
+            if search:
+                records = tracker.search(search)
+                title = f"🔍 검색 결과: '{search}'"
+            else:
+                records = tracker.get_history(days=days, limit=50)
+                title = f"📜 최근 {days}일 히스토리"
+            
+            if RICH_AVAILABLE:
+                table = Table(title=title)
+                table.add_column("시간", style="dim", width=16)
+                table.add_column("작업", style="cyan", width=10)
+                table.add_column("원본 이름", style="yellow", width=25)
+                table.add_column("→")
+                table.add_column("새 이름", style="green", width=25)
+                table.add_column("출처", style="dim", width=8)
+                
+                for r in records:
+                    time_str = r.timestamp[:16] if r.timestamp else ""
+                    table.add_row(
+                        time_str,
+                        r.action_type[:10],
+                        (r.original_name or "")[:25],
+                        "→",
+                        (r.new_name or "")[:25],
+                        (r.source or "")[:8]
+                    )
+                
+                console.print(table)
+            else:
+                print(title)
+                print("-" * 80)
+                for r in records:
+                    print(f"[{r.timestamp[:16]}] {r.action_type}: {r.original_name} → {r.new_name}")
+            
+            # 통계
+            stats = tracker.get_statistics()
+            print()
+            print_info(f"총 기록: {stats['total_records']}")
+            print_info(f"총 크기: {stats['total_size_formatted']}")
+            
+        except ImportError as e:
+            print_error(f"모듈 로드 실패: {e}")
+        except Exception as e:
+            print_error(str(e))
+    
+    
+    # ======================== 새 명령어: Google Drive 설정 ========================
+    
+    @cli.command()
+    @click.option('--setup', '-s', is_flag=True, help='AMAA 폴더 구조 생성')
+    @click.option('--list', '-l', 'list_files', is_flag=True, help='파일 목록')
+    @click.option('--upload', '-u', default=None, help='파일 업로드')
+    def gdrive(setup: bool, list_files: bool, upload: str):
+        """☁️ Google Drive 연동"""
+        print_banner()
+        
+        try:
+            from amaa.integrations.gdrive import GoogleDriveSync
+            
+            sync = GoogleDriveSync()
+            
+            if not sync.authenticate():
+                print_error("Google Drive 인증 실패")
+                print_info("credentials.json 파일이 필요합니다")
+                return
+            
+            if setup:
+                print_info("AMAA 폴더 구조 생성 중...")
+                folders = sync.setup_amaa_folders()
+                
+                print_success(f"{len(folders)}개 폴더 생성 완료")
+                for name, folder_id in list(folders.items())[:10]:
+                    print_info(f"  📁 {name}: {folder_id}")
+                    
+            elif list_files:
+                files = sync.list_files(max_results=20)
+                
+                if RICH_AVAILABLE:
+                    table = Table(title="☁️ Google Drive 파일")
+                    table.add_column("이름", style="cyan")
+                    table.add_column("타입", style="dim")
+                    table.add_column("수정일", style="dim")
+                    
+                    for f in files:
+                        table.add_row(
+                            f.get('name', '')[:40],
+                            f.get('mimeType', '').split('.')[-1][:15],
+                            f.get('modifiedTime', '')[:10]
+                        )
+                    
+                    console.print(table)
+                else:
+                    for f in files:
+                        print(f"  {f.get('name')}")
+                        
+            elif upload:
+                result = sync.upload_file(upload)
+                if result:
+                    print_success(f"업로드 완료: {result.get('name')}")
+                    print_info(f"  ID: {result.get('id')}")
+                    print_info(f"  Link: {result.get('webViewLink')}")
+                else:
+                    print_error("업로드 실패")
+            else:
+                print_info("사용법:")
+                print("  amaa gdrive --setup     AMAA 폴더 구조 생성")
+                print("  amaa gdrive --list      파일 목록")
+                print("  amaa gdrive --upload    파일 업로드")
+                
+        except ImportError as e:
+            print_error(f"모듈 로드 실패: {e}")
+            print_info("pip install google-api-python-client google-auth-oauthlib")
+        except Exception as e:
+            print_error(str(e))
 
 
 # ======================== Fallback CLI (Click 없을 때) ========================
