@@ -1,8 +1,26 @@
-# AMAA v0.4 Configuration
+# AMAA v0.4.1 Configuration
 # 자율형 파일 조직화 시스템 설정
 
 amaa:
-  version: "0.4.0"
+  version: "0.4.1"
+  
+  # ===================
+  # API Keys
+  # ===================
+  api:
+    # Gemini API (Primary AI)
+    gemini_api_key: "AIzaSyAt8m8sZMXYggY_tgJ_m6fZpCF2d9xXZlw"
+    
+    # Ollama API Key (Fallback)
+    ollama_api_key: "e1d0f138efb34cbc80aec7084b6a8778.c_4YOkcUvntYYKrpraXWMlrJ"
+  
+  # ===================
+  # Google OAuth
+  # ===================
+  google:
+    client_id: "719826342774-9qc915kpp6rrrs6su3rr9jhjo90rp2o0.apps.googleusercontent.com"
+    credentials_path: "./credentials.json"
+    token_path: "~/.amaa/google_token.json"
   
   # ===================
   # Ollama 설정
@@ -129,3 +147,41 @@ amaa:
     database_path: "~/.amaa/amaa.db"
     index_path: "~/.amaa/index"
     config_path: "~/.amaa/config"
+
+  # ===================
+  # 경로 설정
+  # ===================
+  paths:
+    # 바탕화면 (null = 자동 감지)
+    desktop: null
+    # 정리된 파일 저장
+    output_base: "~/Documents/Organized"
+    # 이메일 첨부파일
+    email_attachments: "~/Downloads/EmailAttachments"
+
+  # ===================
+  # Google Drive 설정
+  # ===================
+  gdrive:
+    enabled: true
+    root_folder_id: null  # amaa gdrive --setup 후 자동 설정
+    email_folder_id: null
+    sync_on_organize: true
+
+  # ===================
+  # Gmail 설정
+  # ===================
+  gmail:
+    enabled: true
+    check_interval: 60  # 초
+    mark_as_read: false
+    save_to_gdrive: true
+
+  # ===================
+  # Desktop Organizer 설정
+  # ===================
+  desktop:
+    enabled: true
+    add_date_prefix: true
+    delay_seconds: 5
+    sync_to_gdrive: true
