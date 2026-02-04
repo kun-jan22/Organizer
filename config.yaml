@@ -1,24 +1,23 @@
-# AMAA v0.4.1 Configuration
+# AMAA v0.4.2 Configuration
 # 자율형 파일 조직화 시스템 설정
+# API 키는 .env 파일에서 로드됩니다
 
 amaa:
-  version: "0.4.1"
+  version: "0.4.2"
   
   # ===================
-  # API Keys
+  # API Keys (.env에서 로드)
   # ===================
   api:
-    # Gemini API (Primary AI)
-    gemini_api_key: "AIzaSyAt8m8sZMXYggY_tgJ_m6fZpCF2d9xXZlw"
-    
-    # Ollama API Key (Fallback)
-    ollama_api_key: "e1d0f138efb34cbc80aec7084b6a8778.c_4YOkcUvntYYKrpraXWMlrJ"
+    # 환경변수: GEMINI_API_KEY, OLLAMA_API_KEY
+    # .env 파일 참조
+    use_env: true
   
   # ===================
-  # Google OAuth
+  # Google OAuth (.env에서 로드)
   # ===================
   google:
-    client_id: "719826342774-9qc915kpp6rrrs6su3rr9jhjo90rp2o0.apps.googleusercontent.com"
+    # 환경변수: GOOGLE_CLIENT_ID
     credentials_path: "./credentials.json"
     token_path: "~/.amaa/google_token.json"
   

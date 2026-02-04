@@ -802,6 +802,97 @@ if CLICK_AVAILABLE:
             print_info("pip install google-api-python-client google-auth-oauthlib")
         except Exception as e:
             print_error(str(e))
+    
+    
+    # ======================== 새 명령어: 이메일 처리 + 시트 ========================
+    
+    @cli.command()
+    @click.option('--days', '-d', default=7, help='처리할 일수 (기본: 7일)')
+    @click.option('--start', '-s', default=None, help='시작 날짜 (YYYY-MM-DD)')
+    @click.option('--end', '-e', default=None, help='종료 날짜 (YYYY-MM-DD)')
+    @click.option('--query', '-q', default=None, help='Gmail 검색 쿼리')
+    @click.option('--no-attachments', is_flag=True, help='첨부파일 다운로드 안함')
+    @click.option('--no-sheets', is_flag=True, help='Google Sheets 저장 안함')
+    @click.option('--sheet-id', default=None, help='기존 스프레드시트 ID')
+    def emails(days: int, start: str, end: str, query: str, 
+               no_attachments: bool, no_sheets: bool, sheet_id: str):
+        """📧 이메일 처리 + AI 요약 + Google Sheets"""
+        print_banner()
+        
+        try:
+            from amaa.integrations.email_processor import EmailProcessor
+            
+            processor = EmailProcessor(spreadsheet_id=sheet_id)
+            
+            if not processor.authenticate():
+                print_error("API 인증 실패")
+                print_info("credentials.json 파일이 필요합니다")
+                return
+            
+            include_attachments = not no_attachments
+            save_to_sheets = not no_sheets
+            
+            if query:
+                print_info(f"쿼리로 검색: {query}")
+                summaries = processor.process_with_query(
+                    query, include_attachments, save_to_sheets
+                )
+            elif start and end:
+                print_info(f"날짜 범위: {start} ~ {end}")
+                summaries = processor.process_date_range(
+                    start, end, include_attachments, save_to_sheets
+                )
+            else:
+                print_info(f"최근 {days}일 이메일 처리")
+                summaries = processor.process_past_emails(
+                    days, include_attachments, save_to_sheets
+                )
+            
+            # 결과 출력
+            if RICH_AVAILABLE:
+                table = Table(title=f"📧 이메일 요약 ({len(summaries)}개)")
+                table.add_column("날짜", style="dim", width=12)
+                table.add_column("발신자", style="cyan", width=20)
+                table.add_column("제목", style="white", width=30)
+                table.add_column("요약", style="green", width=40)
+                table.add_column("조치", style="yellow", width=6)
+                
+                for s in summaries[:20]:
+                    table.add_row(
+                        s.date[:10] if s.date else "",
+                        s.sender[:20] if s.sender else "",
+                        s.subject[:30] if s.subject else "",
+                        s.summary[:40] if s.summary else "",
+                        "⚠️" if s.needs_action else ""
+                    )
+                
+                console.print(table)
+            else:
+                for s in summaries[:20]:
+                    print(f"  [{s.date[:10]}] {s.subject[:40]}")
+            
+            if save_to_sheets and processor.spreadsheet_id:
+                print()
+                print_success(f"Google Sheets에 저장됨:")
+                print_info(f"  https://docs.google.com/spreadsheets/d/{processor.spreadsheet_id}")
+            
+            # 조치 필요 항목 하이라이트
+            action_needed = [s for s in summaries if s.needs_action]
+            if action_needed:
+                print()
+                print_warning(f"⚠️ 조치 필요: {len(action_needed)}개 이메일")
+                for s in action_needed[:5]:
+                    print(f"  • {s.subject[:50]}")
+                    if s.deadlines:
+                        print(f"    📅 Deadline: {', '.join(s.deadlines)}")
+                    if s.tasks:
+                        print(f"    📋 Tasks: {', '.join(s.tasks[:3])}")
+                
+        except ImportError as e:
+            print_error(f"모듈 로드 실패: {e}")
+            print_info("pip install google-api-python-client google-auth-oauthlib google-generativeai")
+        except Exception as e:
+            print_error(str(e))
 
 
 # ======================== Fallback CLI (Click 없을 때) ========================

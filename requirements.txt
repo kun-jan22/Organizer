@@ -36,10 +36,16 @@ rich>=13.7.0         # Beautiful CLI output
 tqdm>=4.66.0         # Progress bars
 # tkinter is built-in
 
-# Google API (Gmail & Drive)
+# Google API (Gmail, Drive, Sheets)
 google-api-python-client>=2.100.0
 google-auth-oauthlib>=1.2.0
 google-auth-httplib2>=0.2.0
+
+# Gemini AI
+google-generativeai>=0.5.0
+
+# Environment Variables
+python-dotenv>=1.0.1
 
 # Security
 cryptography>=42.0.0
